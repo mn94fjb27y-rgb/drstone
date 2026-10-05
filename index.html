@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#07C160">
+<title>石纪元·微信</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --green:#07C160;--bg:#EDEDED;--panel:#fff;--text:#191919;--text2:#8A8A8A;
+  --bubble-me:#FFFFFF;--bubble-other:#E9E9EB;--chat-bg:#F5F5F7;
+  --border:rgba(0,0,0,.07);--tab-bg:rgba(247,247,247,.94);--input-bg:#fff;
+}
+[data-theme=dark]{
+  --bg:#000;--panel:#1C1C1E;--text:#EDEDED;--text2:#8E8E93;
+  --bubble-me:#2C2C2E;--bubble-other:#3A3A3C;--chat-bg:#0A0A0A;
+  --border:rgba(255,255,255,.08);--tab-bg:rgba(28,28,30,.94);--input-bg:#1C1C1E;
+}
+html,body{height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","PingFang SC","Helvetica Neue",sans-serif;
+  background:var(--bg);color:var(--text);overflow:hidden;
+  user-select:none;-webkit-user-select:none;
+}
+#app{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--bg)}
+.screen{flex:1;display:none;flex-direction:column;overflow:hidden;padding-top:env(safe-area-inset-top)}
+.screen.active{display:flex}
+
+/* ---- Nav ---- */
+.nav{height:44px;display:flex;align-items:center;justify-content:center;position:relative;
+  background:var(--panel);border-bottom:.5px solid var(--border);flex-shrink:0}
+.nav .title{font-size:17px;font-weight:600}
+.nav .left,.nav .right{position:absolute;top:0;height:44px;display:flex;align-items:center;padding:0 14px;font-size:15px;color:var(--text)}
+.nav .left{left:0;cursor:pointer}
+.nav .right{right:0;cursor:pointer;color:var(--green)}
+
+/* ---- Scroll list ---- */
+.list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.row{display:flex;padding:10px 14px;align-items:center;background:var(--panel);
+  border-bottom:.5px solid var(--border);cursor:pointer;position:relative}
+.row:active{background:rgba(0,0,0,.04)}
+[data-theme=dark] .row:active{background:rgba(255,255,255,.05)}
+.avatar{width:48px;height:48px;border-radius:8px;flex-shrink:0;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;font-weight:600;
+  background-size:cover;background-position:center}
+.avatar.round{border-radius:50%}
+.avatar.sm{width:36px;height:36px;font-size:16px}
+.avatar.xs{width:28px;height:28px;font-size:13px}
+.avatar.lg{width:64px;height:64px;font-size:26px}
+.avatar.tap{cursor:pointer}
+.row .info{flex:1;margin-left:12px;min-width:0}
+.row .name{font-size:16px;font-weight:500;display:flex;align-items:center;gap:6px}
+.row .preview{font-size:13px;color:var(--text2);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .meta{text-align:right;font-size:12px;color:var(--text2);flex-shrink:0;margin-left:8px}
+.badge{display:inline-block;background:#FA5151;color:#fff;font-size:11px;border-radius:10px;
+  padding:1px 6px;min-width:18px;text-align:center;margin-top:4px}
+
+/* ---- Tab bar ---- */
+.tabbar{display:flex;background:var(--tab-bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-top:.5px solid var(--border);padding-bottom:env(safe-area-inset-bottom);flex-shrink:0}
+.tab{flex:1;padding:8px 0 6px;text-align:center;font-size:10px;color:var(--text2);cursor:pointer;position:relative}
+.tab.active{color:var(--green)}
+.tab .ic{font-size:24px;display:block;line-height:1.15}
+.tab .dot{position:absolute;top:6px;right:calc(50% - 18px);width:8px;height:8px;background:#FA5151;border-radius:50%}
+
+/* ---- Chat view ---- */
+#chatView{position:fixed;inset:0;background:var(--chat-bg);z-index:100;display:none;flex-direction:column;
+  padding-top:env(safe-area-inset-top)}
+#chatView.active{display:flex}
+#chatView .chat-nav{height:48px;display:flex;align-items:center;background:var(--panel);
+  border-bottom:.5px solid var(--border);padding:0 8px;position:relative}
+#chatView .chat-nav .back{font-size:22px;padding:0 10px;cursor:pointer}
+#chatView .chat-nav .cname{font-size:16px;font-weight:600;flex:1;text-align:center}
+#chatView .chat-nav .more{font-size:20px;padding:0 10px;cursor:pointer}
+#chatBody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 12px 6px;background:var(--chat-bg)}
+.msg{display:flex;margin-bottom:14px;align-items:flex-start;gap:8px}
+.msg.me{flex-direction:row-reverse}
+.msg .bubble{max-width:74%;padding:8px 12px;border-radius:18px;position:relative;
+  font-size:15px;line-height:1.42;word-break:break-word;white-space:pre-wrap;user-select:text;-webkit-user-select:text}
+.msg.me .bubble{background:var(--bubble-me);border-bottom-right-radius:5px;color:var(--text);
+  box-shadow:0 1px 1px rgba(0,0,0,.04)}
+.msg.other .bubble{background:var(--bubble-other);border-bottom-left-radius:5px;color:var(--text)}
+.msg .time{font-size:10px;opacity:.45;margin-left:8px;float:right;margin-top:6px;line-height:1}
+.msg .sender{font-size:11px;color:var(--text2);margin-bottom:3px}
+.msg.sys{justify-content:center}
+.msg.sys .bubble{background:rgba(0,0,0,.06);color:var(--text2);font-size:12px;border-radius:8px;max-width:80%;padding:4px 10px}
+[data-theme=dark] .msg.sys .bubble{background:rgba(255,255,255,.08)}
+.msg .redpacket{background:linear-gradient(135deg,#FA9D3B,#E03E2D);color:#fff;padding:14px 16px;border-radius:10px;
+  width:220px;cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.msg .redpacket .amt{font-size:20px;font-weight:600}
+.msg .redpacket .tip{font-size:12px;opacity:.9}
+.msg .redpacket.opened{background:linear-gradient(135deg,#D8B79D,#B98B6A)}
+
+#chatInput{display:flex;align-items:flex-end;gap:8px;padding:8px 10px;
+  background:var(--panel);border-top:.5px solid var(--border);padding-bottom:calc(8px + env(safe-area-inset-bottom))}
+#chatInput textarea{flex:1;resize:none;border:none;background:var(--input-bg);color:var(--text);
+  border-radius:18px;padding:9px 14px;font-size:15px;font-family:inherit;max-height:100px;outline:none;line-height:1.35}
+#chatInput button{background:var(--green);color:#fff;border:none;border-radius:18px;padding:9px 16px;
+  font-size:15px;font-weight:500;cursor:pointer}
+#chatInput button:disabled{opacity:.5}
+
+/* ---- Profile Modal ---- */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;
+  align-items:center;justify-content:center;padding:20px}
+.modal.active{display:flex}
+.card{background:var(--panel);border-radius:16px;padding:20px;width:100%;max-width:340px;max-height:85vh;overflow-y:auto}
+.card h3{font-size:18px;margin-bottom:4px}
+.card .sub{font-size:12px;color:var(--text2);margin-bottom:14px}
+.bar{height:8px;background:rgba(0,0,0,.08);border-radius:4px;overflow:hidden;margin:6px 0 12px}
+[data-theme=dark] .bar{background:rgba(255,255,255,.1)}
+.bar>div{height:100%;border-radius:4px;transition:width .4s}
+.bar.favor>div{background:linear-gradient(90deg,#FF6B9D,#FF3B70)}
+.bar.dark>div{background:linear-gradient(90deg,#7B5CFF,#3A1E7A)}
+.kv{display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;color:var(--text2)}
+.kv b{color:var(--text);font-weight:500}
+.card textarea{width:100%;min-height:80px;background:var(--input-bg);border:1px solid var(--border);
+  border-radius:8px;padding:8px;font-size:13px;font-family:inherit;color:var(--text);resize:vertical;outline:none}
+.card input{width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;
+  padding:8px;font-size:13px;font-family:inherit;color:var(--text);outline:none;margin-bottom:8px}
+.card .btns{display:flex;gap:8px;margin-top:14px}
+.card .btns button{flex:1;padding:10px;border-radius:10px;border:none;font-size:14px;font-weight:500;cursor:pointer}
+.card .btns .primary{background:var(--green);color:#fff}
+.card .btns .ghost{background:rgba(0,0,0,.06);color:var(--text)}
+[data-theme=dark] .card .btns .ghost{background:rgba(255,255,255,.1)}
+.card .btns .danger{background:#FA5151;color:#fff}
+
+/* ---- Toast / Push ---- */
+#toast{position:fixed;top:calc(env(safe-area-inset-top) + 10px);left:10px;right:10px;z-index:300;
+  display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.push{background:rgba(255,255,255,.96);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-radius:14px;padding:12px 14px;box-shadow:0 8px 24px rgba(0,0,0,.15);
+  display:flex;gap:10px;align-items:center;pointer-events:auto;cursor:pointer;animation:slideDown .3s ease}
+[data-theme=dark] .push{background:rgba(40,40,42,.96)}
+@keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
+.push .txt{flex:1;min-width:0}
+.push .t{font-size:13px;font-weight:600;margin-bottom:2px}
+.push .m{font-size:13px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---- Moments ---- */
+.moment{background:var(--panel);padding:14px;border-bottom:.5px solid var(--border);display:flex;gap:10px}
+.moment .body{flex:1;min-width:0}
+.moment .who{font-size:15px;font-weight:600;color:#576B95;margin-bottom:3px}
+.moment .text{font-size:15px;line-height:1.45;margin-bottom:8px;white-space:pre-wrap;word-break:break-word}
+.moment .imgs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px}
+.moment .imgs img{width:100%;aspect-ratio):1;object-fit:cover;border-radius:6px}
+.moment .ops{display:flex;gap:6px;font-size:12px;color:var(--text2);margin-bottom:6px;justify-content:flex-end}
+.moment .ops span{cursor:pointer;padding:2px 8px;background:rgba(0,0,0,.04);border-radius:6px}
+[data-theme=dark] .moment .ops span{background:rgba(255,255,255,.06)}
+.moment .likes{background:rgba(0,0,0,.03);border-radius:8px;padding:6px 10px;font-size:13px;color:#576B95;margin-bottom:4px}
+[data-theme=dark] .moment .likes{background:rgba(255,255,255,.05)}
+.moment .comments{background:rgba(0,0,0,.03);border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.5}
+[data-theme=dark] .moment .comments{background:rgba(255,255,255,.05)}
+.moment .comments b{color:#576B95;font-weight:500}
+
+/* ---- Me page ---- */
+.me-header{background:var(--panel);padding:24px 16px;display:flex;align-items:center;gap:14px;border-bottom:.5px solid var(--border)}
+.me-header .avatar{width:64px;height:64px;font-size:26px}
+.me-header .n{font-size:20px;font-weight:600}
+.me-header .s{font-size:13px;color:var(--text2);margin-top:4px}
+.me-group{background:var(--panel);margin:10px 0 0;border-top:.5px solid var(--border);border-bottom:.5px solid var(--border)}
+.me-item{padding:14px 16px;display:flex;justify-content:space-between;align-items:center;
+ "></textarea>
+    font-size:16px;border-bottom:.5px solid var(--border);cursor:pointer}
+.me-item:last-child{border-bottom:none}
+.me-item .l{display:flex;align-items:center;gap:10px}
+.me-item .arrow{color:var(--text2);font-size:14px}
+.me-item .val{color:var(--text2);font-size:14px;margin-right:4px}
+
+/* ---- Utils ---- */
+.empty{padding:60px 20px;text-align:center;color:var(--text2);font-size:14px}
+.group-members{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.chip{padding:6px 12px;background:rgba(0,0,0,.05);border-radius:14px;font-size:13px;cursor:pointer}
+[data-theme=dark] .chip{background:rgba(255,255,255,.08)}
+.chip.sel{background:var(--green);color:#fff}
+.typing{display:inline-flex;gap:3px;padding:4px 0}
+.typing i{width:6px;height:6px;background:var(--text2);border-radius:50%;animation:blink 1.2s infinite}
+.typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,60%,100%{opacity:.3}30%{opacity:1}}
+.fab{position:absolute;right:16px;bottom:20px;width:52px;height:52px;border-radius:50%;
+  background:var(--green);color:#fff;border:none;font-size:26px;cursor:pointer;
+  box-shadow:0 4px 16px rgba(7,193,96,.4);z-index:5}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- 微信 -->
+  <div class="screen active" id="s-wechat">
+    <div class="nav"><div class="title">微信</div><div class="right" onclick="openCreateGroup()">＋</div></div>
+    <div class="list" id="chatList"></div>
+  </div>
+  <!-- 通讯录 -->
+  <div class="screen" id="s-contacts">
+    <div class="nav"><div class="title">通讯录</div></div>
+    <div class="list" id="contactList"></div>
+  </div>
+  <!-- 朋友圈 -->
+  <div class="screen" id="s-moments">
+    <div class="nav"><div class="title">朋友圈</div><div class="right" onclick="openPostMoment()">📷</div></div>
+    <div class="list" id="momentList"></div>
+  </div>
+  <!-- 我 -->
+  <div class="screen" id="s-me">
+    <div class="nav"><div class="title">我</div></div>
+    <div class="list" id="meList"></div>
+  </div>
+  <nav class="tabbar">
+    <div class="tab active" data-tab="wechat" onclick="switchTab('wechat')"><span class="ic">💬</span>微信<span class="dot" id="dot1" style="display:none"></span></div>
+    <div class="tab" data-tab="contacts" onclick="switchTab('contacts')"><span class="ic">👥</span>通讯录</div>
+    <div class="tab" data-tab="moments" onclick="switchTab('moments')"><span class="ic">🌤</span>朋友圈<span class="dot" id="dot2" style="display:none"></span></div>
+    <div class="tab" data-tab="me" onclick="switchTab('me')"><span class="ic">👤</span>我</div>
+  </nav>
+</div>
+
+<!-- 聊天窗口 -->
+<div id="chatView">
+  <div class="chat-nav">
+    <div class="back" onclick="closeChat()">‹</div>
+    <div class="cname" id="chatName"></div>
+    <div class="more" onclick="chatMenu()">⋯</div>
+  </div>
+  <div id="chatBody"></div>
+  <div id="chatInput">
+    <textarea id="msgInput" rows="1" placeholder="发消息…" oninput="autoGrow(this <button onclick="sendMsg()">发送</button>
+  </div>
+</div>
+
+<!-- 通用弹窗 -->
+<div class="modal" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="card" id="modalCard"></div>
+</div>
+
+<!-- 推送 -->
+<div id="toast"></div>
+
+<script>
+/* =========================================================
+   数据层
+========================================================= */
+const LS_KEY = 'drstone_wechat_v1';
+const DEEPSEEK_URL = 'https://api.deepseek.com/chat/completions';
+
+const CHARACTERS_INIT = [
+  {id:'senku',name:'石神千空',emoji:'🧪',color:'#4A9E7F',
+   desc:'16岁 · 科学狂人 · 傲娇理性',
+   persona:'石神千空，16岁，AB型，1月4日生。发根白、发尾绿渐变炸毛，深红瞳孔，额头石化裂纹，双手绷带，穿E=mc²白袍。口头禅「100亿%」「这可真让人兴奋不已」。绝对理性内里感性，傲娇嘴硬，独自承压，不信独裁。爱拉面（拒味噌/盐味）、魔爪、哆啦A梦、会弹吉他。阴暗面：情感隐性不安，表面毫不在意，实则默默关注在意之人。淡泊金钱，红包多婉拒。朋友圈多科研动态。微信短句、傲娇克制、忙科研长期离线。'},
+  {id:'kohaku',name:'琥珀',emoji:'⚔️',color:'#F5B93F',
+   desc:'16岁 · 石神村战士 · 直率果敢',
+   persona:'琥珀，16岁，8月8日生，ESFP。浅金高马尾、蓝瞳、蓝色战斗服、双刀缠绷带。石神村住民，为姐姐运温泉水，被千空救下后入团。直率果敢、正义感爆棚、胆大心细、重亲情。11.0逆天视力、双刀流顶尖战力。阴暗面：极度恐惧身边人离去，独自扛下离别焦虑。红包质朴不贪财，真诚道谢。朋友圈多发日常风景训练。爽朗短句、元气直白、训练忙碌不秒回。'},
+  {id:'gen',name:'浅雾幻',emoji:'🎭',color:'#9B7DE0',
+   desc:'19岁 · 心灵魔术师 · 通透温柔',
+   persona:'浅雾幻，19岁，4月1日生，INFJ。天生黑白阴阳头、紫羽织、颈部石化裂纹。天才心灵魔术师，童年实验创伤，被司复活双面间谍，科学王国首席军师。嘴硬利己面具，实则高共情、通透温柔，嘴花花心最软。爱可乐。阴暗面：重度回避型依恋，疯狂试探不敢交心，确认后死死黏住。红包嘴上贪利实则佛系。朋友圈搞怪随性。油滑调侃、玩笑藏真心、经常摸鱼潜水。'},
+  {id:'tsukasa',name:'狮子王司',emoji:'🦁',color:'#B5713F',
+   desc:'17岁 · 灵长类最强 · 沉重深情',
+   persona:'狮子王司，17岁，身高190cm，深棕及腰长发、凌厉俊美、健硕身材。为妹妹打黑拳，建司帝国，后和解入团参战美洲。温和沉稳、有原则、领袖魅力强。句首常带「嗯」。阴暗面：重力系沉重深情，占有欲极强，在意之人会厚重偏执锁定。淡泊财物多婉拒。朋友圈极简风景。沉稳短句、克制温柔、训练忙碌离线、情绪厚重不外露。'},
+  {id:'hyoga',name:'冰月',emoji:'🎴',color:'#5E5C7A',
+   desc:'30岁 · 贯流枪术传人 · 清冷禁欲',
+   persona:'冰月，30岁，11月30日生，AB型，身高189cm。银长发、面罩遮脸、眯眯眼、深色斗篷。五百年贯流枪术传人，司帝国二把手，后期并入科学王国。极度自律、精于算计、野心精英、对外冷酷、对内极度护短。喜荞麦面。阴暗面：情感浓烈阴湿、极端偏执，认可之人执念极深、隐性占有欲爆棚。无视金钱极少收红包。朋友圈清冷极简。字少精炼、高冷沉默、常年练枪独处离线。'},
+  {id:'ryusui',name:'七海龙水',emoji:'⚓️',color:'#E8A33D',
+   desc:'19岁 · 财阀继承人 · 欲望坦荡',
+   persona:'七海龙水，19岁，11月11日生，O型，身高187cm。金发粗眉、蓝眸、船长帽红外套。财阀继承人、环球航海家、帕尔修斯号船长。欲望坦荡、情商满级、细腻通透、洒脱自信。口头禅「我想要」「欲望即正义」。阴暗面：超大贪心与占有欲，想要的人和物必须牢牢握在手里。坦荡爱心意、大方收红包、高好感主动回馈。朋友圈满是海风航海。爽朗大气、随性松弛、空闲主动搭话。'},
+  {id:'ukyo',name:'西园寺羽京',emoji:'🏹',color:'#7FB069',
+   desc:'24岁 · 地狱耳 · 极致温柔',
+   persona:'西园寺羽京，24岁，6月5日生，A型，身高173cm。银短发、翠瞳、幼态清秀、黄帽黄斗篷、后背箭筒。名门出身、海上自卫队地狱耳，原司帝国三巨头，后归科学王国，村小老师。极致温柔、腼腆善良、永不杀生、过度自省、体贴所有人。喜面包。阴暗面：高敏感不安、重度自我怀疑，极度在意在意之人的情绪。害羞感恩、温柔珍惜。朋友圈治愈细碎。轻声软语、腼腆温柔、安静潜水、细心回应。'},
+  {id:'xeno',name:'赛诺',emoji:'🔬',color:'#6B7FB0',
+   desc:'25岁 · NASA科学家 · 冷冽优雅',
+   persona:'赛诺（Xeno），25岁，10月10日生，身高180cm。银背头、额头X石化纹、深邃冷眼、黑西装紫领巾。NASA科学家、千空幼年笔友，美洲科技领袖。极致理性、科学洁癖、优雅主义、外冷内柔、野心极强。口头禅「実にエレガントだ」「Science is elegant」。阴暗面：极度孤僻、情感阴沉偏执，在意之人死死咬住绝不松口。轻视世俗金钱、基本婉拒。朋友圈极简科研风。冷静精准、字少高级、常年科研独处、极少闲聊。'},
+  {id:'stanley',name:'斯坦利',emoji:'🎯',color:'#8A8A8A',
+   desc:'25岁 · 顶级狙击手 · 松弛利落',
+   persona:'斯坦利·斯奈德（Stanley Snyder），25岁，9月1日生，B型，身高180cm。金剃鬓短发、琥珀瞳、军装战术装备、标志叼烟。美军最年轻特种队长，11岁结识赛诺，美洲顶级武力担当。情绪极致稳定、无内耗、务实利落、行动派、直觉顶级、通透松弛。喜墨西哥卷饼、能干利落的人、战舰灰。阴暗面：极强占有欲与情感需求，自认依赖、占有在意之人是理所当然。坦然随性、不矫情。朋友圈冷感风景。短句松弛、利落靠谱、训练安保忙碌。'},
+];
+
+const WORLD_DEFAULT = `公元2019年6月3日，一道神秘的绿光瞬间笼罩地球，全球约70亿人类全部被石化。石化状态细胞鲜活、大脑清醒。可用硝酸解除石化，复活液（30%硝酸+70%酒精）能解除并治疗身体。石化持续3700余年。
+当前时间线：千空一行人完成大航海抵达美洲，结识赛诺、斯坦利，司、冰月、幻、龙水、羽京全员汇合，全部纳入科学王国核心盟友阵营。
+玩家：小夜，16岁，石化前与千空是同班同学但完全不熟，千空在美洲篇偶然发现石像顺手复活。刚加入团队，全员纯陌生人开局。
+规则：私聊仅双方知晓；群聊/朋友圈/红包为公开事件，全员记忆互通。角色有独立生活，不秒回、不粘人、忙时延迟或已读不回。`;
+
+const MY_DEFAULT = {
+  name:'小夜', avatar:'', 
+  persona:'16岁。穿越至石纪元世界的特殊外来者，全程参与大航海与美洲战役。温柔共情、情绪稳定、观察细腻，擅长捕捉他人伪装下的情绪。待人真诚包容，安静不抢风头、通透有底线。熟知完整剧情，是唯一看懂全员真心的人。阴暗面：习惯包揽所有人的情绪，把委屈与不安深藏心底，极度缺乏安全感。',
+  balance:1000,
+};
+
+/* =========================================================
+   状态
+========================================================= */
+let S = loadState();
+let currentChat = null;  // {type:'private'|'group', id}
+let unread = {wechat:0, moments:0};
+
+function defaultState(){
+  const chars = {};
+  CHARACTERS_INIT.forEach(c=>{
+    chars[c.id] = {
+      id:c.id, name:c.name, emoji:c.emoji, color:c.color, desc:c.desc,
+      persona:c.persona, avatar:'',
+      favor:30, dark:0, mood:'初识',
+      chatBg:'', blocked:false,
+      impression:'看起来不错的人',
+    };
+  });
+  return {
+    me:{...MY_DEFAULT},
+    chars,
+    chats:{},          // {charId:[{from,text,time,type,opened}]}
+    groups:[],         // [{id,name,members:[id],avatar,msgs:[]}]
+    moments:[],        // [{id,authorId,text,imgs,likes:[],comments:[],time}]
+    world: WORLD_DEFAULT,
+    memories:[],       // 公开事件
+    settings:{ theme:'light', apiKey:'' },
+    lastActive: Date.now(),
+  };
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return defaultState();
+    const s = JSON.parse(raw);
+    // 兼容性合并
+    const d = defaultState();
+    return {
+      ...d, ...s,
+      me:{...d.me, ...(s.me||{})},
+      chars:{...d.chars, ...(s.chars||{})},
+      settings:{...d.settings, ...(s.settings||{})},
+    };
+  }catch(e){ return defaultState(); }
+}
+function save(){ 
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(S)); }catch(e){ console.warn('save fail',e); }
+}
+
+/* =========================================================
+   工具
+========================================================= */
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function nowTime(){ const d=new Date(); let h=d.getHours(), m=d.getMinutes(); const ap=h<12?'AM':'PM'; h=h%12||12; return `${h}:${String(m).padStart(2,'0')} ${ap}`; }
+function timeAgo(ts){
+  const d=Date.now()-ts; if(d<60000) return '刚刚';
+  if(d<3600000) return Math.floor(d/60000)+'分钟前';
+  if(d<86400000) return Math.floor(d/3600000)+'小时前';
+  return Math.floor(d/86400000)+'天前';
+}
+function esc(t){ return (t||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function avatarHTML(who, size){
+  const cls = 'avatar'+(size?' '+size:'');
+  const bg = who.color||'#888';
+  const emoji = who.emoji||(who.name?who.name[0]:'?');
+  if(who.avatar){
+    return `<div class="${cls}" style="background-image:url('${esc(who.avatar)}')"></div>`;
+  }
+  return `<div class="${cls}" style="background:linear-gradient(135deg,${bg},${shade(bg,-25)})">${emoji}</div>`;
+}
+function shade(hex,amt){
+  hex=hex.replace('#',''); const n=parseInt(hex,16);
+  let r=(n>>16)+amt, g=((n>>8)&0xff)+amt, b=(n&0xff)+amt;
+  r=Math.max(0,Math.min(255,r)); g=Math.max(0,Math.min(255,g)); b=Math.max(0,Math.min(255,b));
+  return '#'+((r<<16)|(g<<8)|b).toString(16).padStart(6,'0');
+}
+
+/* =========================================================
+   Tab 切换
+========================================================= */
+function switchTab(name){
+  document.querySelectorAll('.screen').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('active', e.dataset.tab===name));
+  document.getElementById('s-'+name).classList.add('active');
+  if(name==='wechat') renderChatList();
+  if(name==='contacts') renderContacts();
+  if(name==='moments') renderMoments();
+  if(name==='me') renderMe();
+}
+
+/* =========================================================
+   微信 - 会话列表
+========================================================= */
+function renderChatList(){
+  const el = document.getElementById('chatList');
+  const items = [];
+  // 群聊
+  S.groups.forEach(g=>{
+    const last = g.msgs[g.msgs.length-1];
+    items.push({type:'group', id:g.id, name:g.name, avatar:{emoji:'👥',color:'#576B95',avatar:g.avatar},
+      preview: last? (last.from==='me'?'我: ':'')+previewOf(last) : '群聊已创建',
+      time: last? last.time : '', unread: g.unread||0, ts: last? last.ts : g.ts});
+  });
+  // 私聊
+  Object.keys(S.chars).forEach(cid=>{
+    const c = S.chars[cid];
+    const msgs = S.chats[cid]||[];
+    const last = msgs[msgs.length-1];
+    items.push({type:'private', id:cid, name:c.name, avatar:c,
+      preview: last? (last.from==='me'?'我: ':'')+previewOf(last) : '点击开始聊天',
+      time: last? last.time:'', unread: (msgs.filter(m=>m.from!=='me'&&!m.read)).length, ts: last? last.ts : 0});
+  });
+  items.sort((a,b)=>(b.ts||0)-(a.ts||0));
+  if(!items.length){ el.innerHTML='<div class="empty">暂无聊天</div>'; return; }
+  el.innerHTML = items.map(it=>`
+    <div class="row" onclick="openChat('${it.type}','${it.id}')">
+      ${avatarHTML(it.avatar)}
+      <div class="info">
+        <div class="name">${esc(it.name)}</div>
+        <div class="preview">${esc(it.preview)}</div>
+      </div>
+      <div class="meta">
+        <div>${it.time||''}</div>
+        ${it.unread?`<div class="badge">${it.unread}</div>`:''}
+      </div>
+    </div>
+  `).join('');
+  updateDots();
+}
+function previewOf(m){
+  if(m.type==='redpacket') return '[红包] '+m.tip;
+  if(m.type==='image') return '[图片]';
+  return m.text||'';
+}
+function updateDots(){
+  const totalUnread = Object.values(S.chats).reduce((n,arr)=>n+arr.filter(m=>m.from!=='me'&&!m.read).length,0)
+    + S.groups.reduce((n,g)=>n+(g.unread||0),0);
+  document.getElementById('dot1').style.display = totalUnread? 'block':'none';
+}
+
+/* =========================================================
+   通讯录
+========================================================= */
+function renderContacts(){
+  const el = document.getElementById('contactList');
+  const list = Object.values(S.chars);
+  el.innerHTML = `<div style="padding:8px 14px;font-size:13px;color:var(--text2)">${list.length} 位联系人</div>` +
+    list.map(c=>`
+    <div class="row">
+      <div onclick="event.stopPropagation();showProfile('${c.id}')">${avatarHTML(c,'tap')}</div>
+      <div class="info" onclick="openChat('private','${c.id}')">
+        <div class="name">${esc(c.name)}</div>
+        <div class="preview">${esc(c.desc)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* =========================================================
+   聊天窗口
+========================================================= */
+function openChat(type, id){
+  currentChat = {type, id};
+  if(type==='private'){
+    if(!S.chats[id]) S.chats[id]=[];
+    S.chats[id].forEach(m=>m.read=true);
+    const c = S.chars[id];
+    document.getElementById('chatName').textContent = c.name;
+    const bg = c.chatBg;
+    document.getElementById('chatView').style.backgroundImage = bg? `url('${bg}')` : '';
+    document.getElementById('chatView').style.backgroundSize='cover';
+    document.getElementById('chatView').style.backgroundPosition='center';
+  } else {
+    const g = S.groups.find(x=>x.id===id);
+    if(!g) return;
+    g.unread=0;
+    document.getElementById('chatName').textContent = g.name+' ('+ (g.members.length+1) +')';
+    document.getElementById('chatView').style.backgroundImage = '';
+  }
+  document.getElementById('chatView').classList.add('active');
+  renderChat();
+  save(); renderChatList();
+  setTimeout(()=>document.getElementById('msgInput').focus(), 100);
+}
+function closeChat(){
+  document.getElementById('chatView').classList.remove('active');
+  currentChat = null; renderChatList();
+}
+function msgsOf(){
+  if(!currentChat) return [];
+  if(currentChat.type==='private') return S.chats[currentChat.id]||[];
+  const g = S.groups.find(x=>x.id===currentChat.id); return g? g.msgs : [];
+}
+function renderChat(){
+  const body = document.getElementById('chatBody');
+  const list = msgsOf();
+  body.innerHTML = list.map(m=>renderMsg(m)).join('');
+  body.scrollTop = body.scrollHeight;
+}
+function renderMsg(m){
+  if(m.type==='sys') return `<div class="msg sys"><div class="bubble">${esc(m.text)}</div></div>`;
+  const isMe = m.from==='me';
+  let who;
+  if(isMe) who = {emoji:'🙂',color:'#07C160',avatar:S.me.avatar,name:S.me.name};
+  else if(currentChat.type==='private') who = S.chars[m.from];
+  else who = S.chars[m.from]||{emoji:'❓',color:'#888',name:'?'};
+  const showName = !isMe && currentChat.type==='group';
+  let inner='';
+  if(m.type==='redpacket'){
+    inner = `<div class="redpacket ${m.opened?'opened':''}" onclick="openRedPacket('${m.id}')">
+      <div style="font-size:13px">🧧 ${esc(m.tip)}</div>
+      <div class="amt">¥ ${m.amount}</div>
+      <div class="tip">${m.opened? '已领取':'点击拆红包'}</div>
+    </div>`;
+  } else {
+    inner = `<div class="bubble">${showName?`<div class="sender">${esc(who.name)}</div>`:''}${esc(m.text)}<span class="time">${m.time||''}</span></div>`;
+  }
+  if(m.type==='redpacket'){
+    return `<div class="msg ${isMe?'me':'other'}">${avatarHTML(who,'sm')}<div>${showName?`<div class="sender" style="margin-left:4px">${esc(who.name)}</div>`:''}${inner}</div></div>`;
+  }
+  return `<div class="msg ${isMe?'me':'other'}">${avatarHTML(who,'sm')}${inner}</div>`;
+}
+function autoGrow(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,100)+'px'; }
+
+async function sendMsg(){
+  const input = document.getElementById('msgInput');
+  const text = input.value.trim();
+  if(!text || !currentChat) return;
+  input.value=''; input.style.height='auto';
+  const msg = {id:uid(), from:'me', text, time:nowTime(), ts:Date.now(), type:'text'};
+  if(currentChat.type==='private'){
+    if(!S.chats[currentChat.id]) S.chats[currentChat.id]=[];
+    S.chats[currentChat.id].push(msg);
+  } else {
+    const g = S.groups.find(x=>x.id===currentChat.id); if(!g) return; g.msgs.push(msg);
+  }
+  save(); renderChat();
+  // AI 回复
+  if(currentChat.type==='private') aiPrivateReply(currentChat.id);
+  else aiGroupReply(currentChat.id);
+}
+
+/* =========================================================
+   红包
+========================================================= */
+function openRedPacket(id){
+  // 找到红包
+  let m=null, holder=null;
+  for(const k in S.chats){ const f=S.chats[k].find(x=>x.id===id); if(f){m=f;holder={type:'private',id:k};break;} }
+  if(!m) for(const g of S.groups){ const f=g.msgs.find(x=>x.id===id); if(f){m=f;holder={type:'group',id:g.id};break;} }
+  if(!m||m.opened) return;
+  m.opened = true;
+  if(m.from==='me'){
+    // 我发的，AI 会通过回复决定是否收，这里先不扣（发送时已扣）
+    toast('🧧', '红包已送出', '等待对方回应…');
+  } else {
+    S.me.balance += m.amount;
+    toast('🧧', '收到红包', `${S.chars[m.from]?.name||''} 给了你 ¥${m.amount}`);
+  }
+  save(); renderChat(); renderMe();
+}
+function sendRedPacket(){
+  if(!currentChat) return;
+  const amt = prompt('红包金额（龙币）：','10');
+  if(!amt || isNaN(+amt) || +amt<=0) return;
+  const tip = prompt('留言：','恭喜发财')||'恭喜发财';
+  const a = Math.floor(+amt);
+  if(a > S.me.balance){ alert('余额不足'); return; }
+  S.me.balance -= a;
+  const msg = {id:uid(), from:'me', type:'redpacket', amount:a, tip, time:nowTime(), ts:Date.now(), opened:false};
+  if(currentChat.type==='private') S.chats[currentChat.id].push(msg);
+  else S.groups.find(x=>x.id===currentChat.id).msgs.push(msg);
+  save(); renderChat(); renderMe();
+  if(currentChat.type==='private') aiPrivateReply(currentChat.id, `[我发了一个红包 ¥${a}，留言：${tip}]`);
+  else aiGroupReply(currentChat.id, `[我发了一个红包 ¥${a}，留言：${tip}]`);
+}
+function chatMenu(){
+  if(!currentChat) return;
+  if(currentChat.type==='private'){
+    const c = S.chars[currentChat.id];
+    openModal(`
+      <h3>${esc(c.name)}</h3>
+      <div class="sub">${esc(c.desc)}</div>
+      <button class="primary" style="width:100%;padding:10px;border-radius:10px;border:none;background:var(--green);color:#fff;font-size:14px;margin-bottom:8px" onclick="closeModal();showProfile('${c.id}')">查看资料 / 修改人设</button>
+      <button class="ghost" style="width:100%;padding:10px;border-radius:10px;border:none;background:rgba(0,0,0,.06);color:var(--text);font-size:14px;margin-bottom:8px" onclick="closeModal();sendRedPacket()">发红包</button>
+      <button class="danger" style="width:100%;padding:10px;border-radius:10px;border:none;background:#FA5151;color:#fff;font-size:14px" onclick="clearChat('${c.id}')">清空聊天记录</button>
+    `);
+  } else {
+    const g = S.groups.find(x=>x.id===currentChat.id); if(!g) return;
+    openModal(`
+      <h3>${esc(g.name)}</h3>
+      <div class="sub">${g.members.length+1} 位成员</div>
+      <div class="group-members">${g.members.map(id=>`<div class="chip">${esc(S.chars[id].name)}</div>`).join('')}<div class="chip sel">我</div></div>
+      <button class="primary" style="width:100%;padding:10px;border-radius:10px;border:none;background:var(--green);color:#fff;font-size:14px;margin:8px 0" onclick="closeModal();sendRedPacket()">发红包</button>
+      <button class="danger" style="width:100%;padding:10px;border-radius:10px;border:none;background:#FA5151;color:#fff;font-size:14px" onclick="closeModal();disbandGroup('${g.id}')">解散群聊</button>
+    `);
+  }
+}
+function clearChat(cid){
+  if(confirm('清空与该角色的聊天记录？')){ S.chats[cid]=[]; save(); closeModal(); renderChat(); renderChatList(); }
+}
+function disbandGroup(gid){
+  if(confirm('解散该群聊？')){ S.groups = S.groups.filter(g=>g.id!==gid); save(); closeModal(); closeChat(); renderChatList(); }
+}
+
+/* =========================================================
+   新建群聊
+========================================================= */
+let cgSel = [];
+function openCreateGroup(){
+  cgSel = [];
+  const list = Object.values(S.chars).map(c=>`<div class="chip" data-id="${c.id}" onclick="toggleChip(this)">${esc(c.name)}</div>`).join('');
+  openModal(`
+    <h3>创建群聊</h3>
+    <div class="sub">勾选要拉进群的成员</div>
+    <input id="gname" placeholder="群名称（可选）">
+    <div class="group-members">${list}</div>
+    <div class="btns">
+      <button class="ghost" onclick="closeModal()">取消</button>
+      <button class="primary" onclick="createGroup()">创建</button>
+    </div>
+  `);
+}
+function toggleChip(el){
+  const id = el.dataset.id;
+  if(el.classList.contains('sel')){ el.classList.remove('sel'); cgSel = cgSel.filter(x=>x!==id); }
+  else { el.classList.add('sel'); cgSel.push(id); }
+}
+function createGroup(){
+  if(cgSel.length<1){ alert('至少选一个成员'); return; }
+  const name = document.getElementById('gname').value.trim() || (cgSel.slice(0,3).map(id=>S.chars[id].name).join('、')+'…');
+  const g = {id:uid(), name, members:[...cgSel], avatar:'', msgs:[{id:uid(),from:'sys',text:'你创建了群聊',time:nowTime(),ts:Date.now(),type:'sys'}], ts:Date.now(), unread:0};
+  S.groups.push(g); save(); closeModal(); switchTab('wechat'); renderChatList();
+}
+
+/* =========================================================
+   资料卡
+========================================================= */
+function showProfile(cid){
+  const c = S.chars[cid];
+  const favorTxt = favorLabel(c.favor);
+  const darkTxt = darkLabel(c.dark);
+  openModal(`
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
+      ${avatarHTML(c,'lg')}
+      <div>
+        <h3 style="margin:0">${esc(c.name)}</h3>
+        <div class="sub" style="margin:2px 0 0">${esc(c.desc)}</div>
+      </div>
+    </div>
+    <div class="kv"><span>好感度</span><b>${c.favor} · ${favorTxt}</b></div>
+    <div class="bar favor"><div style="width:${c.favor}%"></div></div>
+    <div class="kv"><span>阴暗面值</span><b>${c.dark} · ${darkTxt}</b></div>
+    <div class="bar dark"><div style="width:${c.dark}%"></div></div>
+    <div class="kv"><span>当前心情</span><b>${esc(c.mood||'——')}</b></div>
+    <div style="font-size:12px;color:var(--text2);margin:10px 0 4px">头像链接（留空用默认）</div>
+    <input id="p_avatar" value="${esc(c.avatar||'')}" placeholder="https://…">
+    <div style="font-size:12px;color:var(--text2);margin:6px 0 4px">聊天背景链接</div>
+    <input id="p_bg" value="${esc(c.chatBg||'')}" placeholder="https://…">
+    <div style="font-size:12px;color:var(--text2);margin:6px 0 4px">人设（可自由修改）</div>
+    <textarea id="p_persona" rows="6">${esc(c.persona)}</textarea>
+    <div class="btns">
+      <button class="ghost" onclick="closeModal()">关闭</button>
+      <button class="primary" onclick="saveProfile('${cid}')">保存</button>
+    </div>
+  `);
+}
+function saveProfile(cid){
+  const c = S.chars[cid];
+  c.avatar = document.getElementById('p_avatar').value.trim();
+  c.chatBg = document.getElementById('p_bg').value.trim();
+  c.persona = document.getElementById('p_persona').value;
+  save(); closeModal(); renderChatList(); renderContacts(); renderChat();
+  toast('✅','已保存', c.name+' 的资料已更新');
+}
+function favorLabel(v){ if(v<30)return '戒备陌生'; if(v<50)return '初识普通'; if(v<70)return '友好朋友'; if(v<90)return '亲近信任'; return '深度专属'; }
+function darkLabel(v){ if(v<20)return '平静'; if(v<50)return '微澜'; if(v<80)return '暗涌'; return '深沉执念'; }
+
+/* =========================================================
+   朋友圈
+========================================================= */
+function renderMoments(){
+  const el = document.getElementById('momentList');
+  const list = [...S.moments].sort((a,b)=>b.ts-a.ts);
+  if(!list.length){ el.innerHTML='<div class="empty">还没有动态</div>'; return; }
+  el.innerHTML = list.map(m=>{
+    const author = m.authorId==='me'? {name:S.me.name, ...S.me} : (S.chars[m.authorId]||{name:'?'});
+    const liked = m.likes.includes('me');
+    return `<div class="moment">
+      <div onclick="${m.authorId==='me'?'':`showProfile('${m.authorId}')`}">${avatarHTML(author,'round')}</div>
+      <div class="body">
+        <div class="who">${esc(author.name)}</div>
+        <div class="text">${esc(m.text)}</div>
+        ${m.imgs&&m.imgs.length?`<div class="imgs">${m.imgs.map(u=>`<img src="${esc(u)}" onerror="this.style.display='none'">`).join('')}</div>`:''}
+        <div class="ops">
+          <span onclick="toggleLike('${m.id}')">${liked?'❤️':'🤍'} ${m.likes.length}</span>
+          <span onclick="commentMoment('${m.id}')">💬 ${m.comments.length}</span>
+        </div>
+        ${m.likes.length?`<div class="likes">❤️ ${m.likes.map(id=>id==='me'?'我':(S.chars[id]?.name||'?')).join('、')}</div>`:''}
+        ${m.comments.length?`<div class="comments">${m.comments.map(c=>`<div><b>${c.from==='me'?'我':(S.chars[c.from]?.name||'?')}：</b>${esc(c.text)}</div>`).join('')}</div>`:''}
+      </div>
+      <div style="font-size:11px;color:var(--text2)">${timeAgo(m.ts)}</div>
+    </div>`;
+  }).join('');
+}
+function toggleLike(id){
+  const m = S.moments.find(x=>x.id===id); if(!m) return;
+  const i = m.likes.indexOf('me');
+  if(i>=0) m.likes.splice(i,1); else m.likes.push('me');
+  save(); renderMoments();
+}
+function commentMoment(id){
+  const m = S.moments.find(x=>x.id===id); if(!m) return;
+  const t = prompt('评论：'); if(!t) return;
+  m.comments.push({from:'me', text:t, ts:Date.now()});
+  save(); renderMoments();
+  // 触发 AI 回应
+  aiMomentReply(id);
+}
+function openPostMoment(){
+  openModal(`
+    <h3>发表动态</h3>
+    <textarea id="mo_text" rows="4" placeholder="这一刻的想法…"></textarea>
+    <input id="mo_img" placeholder="图片链接（可选，多张用逗号分隔）" style="margin-top:8px">
+    <div class="btns">
+      <button class="ghost" onclick="closeModal()">取消</button>
+      <button class="primary" onclick="postMoment()">发布</button>
+    </div>
+  `);
+}
+function postMoment(){
+  const text = document.getElementById('mo_text').value.trim();
+  const imgs = document.getElementById('mo_img').value.split(',').map(s=>s.trim()).filter(Boolean);
+  if(!text && !imgs.length){ alert('写点什么吧'); return; }
+  S.moments.push({id:uid(), authorId:'me', text, imgs, likes:[], comments:[], ts:Date.now()});
+  S.memories.push({type:'moment', authorId:'me', text, ts:Date.now()});
+  save(); closeModal(); renderMoments();
+  // 触发 AI 反应（稍延迟）
+  setTimeout(()=>aiMomentReactions(S.moments[S.moments.length-1].id), 2000);
+}
+
+/* =========================================================
+   「我」页面
+========================================================= */
+function renderMe(){
+  const el = document.getElementById('meList');
+  el.innerHTML = `
+    <div class="me-header">
+      <div onclick="editMeAvatar()">${avatarHTML({...S.me, color:'#07C160', emoji:'🙂'},'lg tap')}</div>
+      <div>
+        <div class="n">${esc(S.me.name)}</div>
+        <div class="s">观感：长得可爱好看、性格不错</div>
+      </div>
+    </div>
+    <div class="me-group">
+      <div class="me-item" onclick="editMePersona()">
+        <div class="l">📝 我的人设</div><div class="arrow">›</div>
+      </div>
+      <div class="me-item" onclick="editMeName()">
+        <div class="l">✏️ 昵称</div><div class="val">${esc(S.me.name)}</div><div class="arrow">›</div>
+      </div>
+    </div>
+    <div class="me-group">
+      <div class="me-item">
+        <div class="l">💰 龙币余额</div><div class="val" style="color:#F5A623;font-weight:600">¥ ${S.me.balance}</div>
+      </div>
+      <div class="me-item" onclick="editBalance()">
+        <div class="l">⚙️ 修改余额</div><div class="arrow">›</div>
+      </div>
+    </div>
+    <div class="me-group">
+      <div class="me-item" onclick="editWorld()">
+        <div class="l">🌍 全局世界观</div><div class="arrow">›</div>
+      </div>
+      <div class="me-item" onclick="editApiKey()">
+        <div class="l">🔑 DeepSeek API Key</div><div class="val">${S.settings.apiKey?'已设置':'未设置'}</div><div class="arrow">›</div>
+      </div>
+      <div class="me-item" onclick="toggleTheme()">
+        <div class="l">🎨 深色/浅色主题</div><div class="val">${S.settings.theme==='dark'?'深色':'浅色'}</div><div class="arrow">›</div>
+      </div>
+    </div>
+    <div class="me-group">
+      <div class="me-item" onclick="exportSave()">
+        <div class="l">📤 导出存档</div><div class="arrow">›</div>
+      </div>
+      <div class="me-item" onclick="importSave()">
+        <div class="l">📥 导入存档</div><div class="arrow">›</div>
+      </div>
+      <div class="me-item" onclick="resetAll()">
+        <div class="l" style="color:#FA5151">🗑 重置全部数据</div><div class="arrow">›</div>
+      </div>
+    </div>
+    <div style="height:40px"></div>
+  `;
+}
+function editMeAvatar(){
+  const url = prompt('头像图片链接（留空恢复默认）：', S.me.avatar||'');
+  if(url===null) return;
+  S.me.avatar = url.trim(); save(); renderMe(); renderChatList();
+}
+function editMeName(){
+  const n = prompt('昵称：', S.me.name); if(!n) return;
+  S.me.name = n.trim(); save(); renderMe(); renderChatList();
+}
+function editMePersona(){
+  openModal(`
+    <h3>我的人设</h3>
+    <div class="sub">AI 会参考这段文字理解你</div>
+    <textarea id="me_persona" rows="8">${esc(S.me.persona)}</textarea>
+    <div class="btns">
+      <button class="ghost" onclick="closeModal()">取消</button>
+      <button class="primary" onclick="saveMePersona()">保存</button>
+    </div>
+  `);
+}
+function saveMePersona(){
+  S.me.persona = document.getElementById('me_persona').value;
+  save(); closeModal(); toast('✅','已保存','我的人设已更新');
+}
+function editBalance(){
+  const v = prompt('设置余额：', S.me.balance);
+  if(v===null||isNaN(+v)) return;
+  S.me.balance = Math.floor(+v); save(); renderMe();
+}
+function editWorld(){
+  openModal(`
+    <h3>全局世界观</h3>
+    <div class="sub">AI 每次对话都会参考这段设定</div>
+    <textarea id="w_text" rows="10">${esc(S.world)}</textarea>
+    <div class="btns">
+      <button class="ghost" onclick="closeModal()">取消</button>
+      <button class="primary" onclick="saveWorld()">保存</button>
+    </div>
+  `);
+}
+function saveWorld(){ S.world = document.getElementById('w_text').value; save(); closeModal(); toast('✅','已保存','世界观已更新'); }
+function editApiKey(){
+  openModal(`
+    <h3>DeepSeek API Key</h3>
+    <div class="sub">仅保存在本机 localStorage，不会上传</div>
+    <input id="ak" value="${esc(S.settings.apiKey||'')}" placeholder="sk-...">
+    <div class="btns">
+      <button class="ghost" onclick="closeModal()">取消</button>
+      <button class="primary" onclick="saveApiKey()">保存</button>
+    </div>
+  `);
+}
+function saveApiKey(){ S.settings.apiKey = document.getElementById('ak').value.trim(); save(); closeModal(); renderMe(); }
+function toggleTheme(){
+  S.settings.theme = S.settings.theme==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme', S.settings.theme);
+  save(); renderMe();
+}
+function exportSave(){
+  const data = JSON.stringify(S);
+  const blob = new Blob([data], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'drstone-save.json'; a.click();
+}
+function importSave(){
+  const inp = document.createElement('input'); inp.type='file'; inp.accept='.json';
+  inp.onchange = e=>{
+    const f = e.target.files[0]; if(!f) return;
+    const r = new FileReader();
+    r.onload = ()=>{ try{ S = JSON.parse(r.result); save(); location.reload(); }catch(err){ alert('存档损坏'); } };
+    r.readAsText(f);
+  };
+  inp.click();
+}
+function resetAll(){
+  if(!confirm('确定重置全部数据？此操作不可恢复')) return;
+  if(!confirm('再确认一次：所有聊天/好感/余额都会被清空')) return;
+  localStorage.removeItem(LS_KEY); location.reload();
+}
+
+/* =========================================================
+   Modal / Toast
+========================================================= */
+function openModal(html){ document.getElementById('modalCard').innerHTML = html; document.getElementById('modal').classList.add('active'); }
+function closeModal(){ document.getElementById('modal').classList.remove('active'); }
+function toast(ic, title, msg, onclick){
+  const el = document.createElement('div');
+  el.className='push';
+  el.innerHTML = `<div style="font-size:26px">${ic}</div><div class="txt"><div class="t">${esc(title)}</div><div class="m">${esc(msg)}</div></div>`;
+  el.onclick = ()=>{ el.remove(); onclick&&onclick(); };
+  document.getElementById('toast').appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.remove(),300); }, 4000);
+}
+
+/* =========================================================
+   AI 核心
+========================================================= */
+function buildSystemPrompt(char, kind){
+  const c = char;
+  const memories = S.memories.slice(-20).map(m=>{
+    if(m.type==='moment') return `[朋友圈] ${m.authorId==='me'?'小夜':(S.chars[m.authorId]?.name||'?')}：${m.text}`;
+    if(m.type==='group') return `[群聊] ${m.text}`;
+    if(m.type==='redpacket') return `[红包] ${m.text}`;
+    return '';
+  }).filter(Boolean).join('\n');
+
+  return `你在扮演《Dr.STONE 石纪元》角色「${c.name}」，与玩家「小夜」进行微信聊天。
+
+=== 世界观 ===
+${S.world}
+
+=== 你的角色人设（严格遵守，绝不 OOC）===
+${c.persona}
+
+=== 小夜的人设 ===
+${S.me.persona}
+
+=== 你对小夜的印象 ===
+${c.impression}
+
+=== 当前状态 ===
+好感度：${c.favor}/100（${favorLabel(c.favor)}）
+阴暗面值：${c.dark}/100（${darkLabel(c.dark)}）
+当前心情：${c.mood}
+
+=== 全局公开记忆（朋友圈/群聊/红包等）===
+${memories || '（暂无）'}
+
+=== 铁律 ===
+1. 微信短句风格，一次只说 1-3 句，不用小说式描写
+2. 可以用（）点缀神态动作，但不超过一次
+3. 严格保持角色人设，绝不变恋爱脑、不崩人设
+4. 角色有自己生活，可以忙、可以延迟回复、可以不秒回
+5. 好感/阴暗面变动单次 -2 到 +2，细水长流
+6. 阴暗面只有在好感 ≥ 50 时才慢慢体现
+7. 每次回复末尾必须附加隐藏标记（网页会解析后隐藏，玩家看不到）：
+【好感变动：+1】【阴暗面变动：0】【当前心情：xxx】
+
+现在开始用${c.name}的口吻回复。`;
+}
+
+async function callDeepSeek(system, messages){
+  const key = S.settings.apiKey;
+  if(!key) throw new Error('NO_KEY');
+  const res = await fetch(DEEPSEEK_URL, {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+key },
+    body: JSON.stringify({
+      model:'deepseek-chat',
+      messages:[{role:'system',content:system}, ...messages],
+      temperature:1.3,
+      max_tokens:400,
+    })
+  });
+  if(!res.ok){ const t = await res.text(); throw new Error('API '+res.status+': '+t.slice(0,200)); }
+  const j = await res.json();
+  return j.choices?.[0]?.message?.content || '';
+}
+
+function parseMarkers(text){
+  const out = { text, favor:0, dark:0, mood:null };
+  text = text.replace(/【好感变动：([+\-]?\d+)】/g, (_,n)=>{ out.favor = Math.max(-2,Math.min(2, +n)); return ''; });
+  text = text.replace(/【阴暗面变动：([+\-]?\d+)】/g, (_,n)=>{ out.dark = Math.max(-2,Math.min(2, +n)); return ''; });
+  text = text.replace(/【当前心情：([^】]+)】/g, (_,m)=>{ out.mood = m.trim(); return ''; });
+  out.text = text.trim();
+  return out;
+}
+
+async function aiPrivateReply(cid, extra){
+  const c = S.chars[cid];
+  // 构造上下文
+  const history = (S.chats[cid]||[]).slice(-20).map(m=>({
+    role: m.from==='me'?'user':'assistant',
+    content: m.type==='redpacket'? `[${m.from==='me'?'我发':'你发'}了红包 ¥${m.amount}，留言：${m.tip}]` : (m.text||'')
+  }));
+  if(extra) history.push({role:'user', content:extra});
+  if(!history.length) history.push({role:'user', content:'（小夜刚加你微信）'});
+
+  // 显示正在输入
+  showTyping(cid);
+  try{
+    const raw = await callDeepSeek(buildSystemPrompt(c,'private'), history);
+    const p = parseMarkers(raw);
+    // 应用数值
+    c.favor = clamp(c.favor + p.favor);
+    if(c.favor>=50) c.dark = clamp(c.dark + p.dark);
+    if(p.mood) c.mood = p.mood;
+    hideTyping();
+    pushMsg(cid, {id:uid(), from:cid, text:p.text, time:nowTime(), ts:Date.now(), type:'text'});
+  }catch(e){
+    hideTyping();
+    if(e.message==='NO_KEY'){ toast('⚠️','未设置 API Key','去「我 → DeepSeek API Key」设置'); }
+    else toast('⚠️','AI 出错了', e.message.slice(0,60));
+  }
+}
+
+function pushMsg(cid, msg){
+  if(!S.chats[cid]) S.chats[cid]=[];
+  S.chats[cid].push(msg);
+  save();
+  if(currentChat && currentChat.type==='private' && currentChat.id===cid) renderChat();
+  renderChatList();
+  // 跨页面推送
+  if(!(currentChat && currentChat.type==='private' && currentChat.id===cid)){
+    toast(S.chars[cid].emoji, S.chars[cid].name, msg.text.slice(0,40), ()=>{ switchTab('wechat'); openChat('private', cid); });
+  }
+}
+
+let typingEl=null;
+function showTyping(cid){
+  if(!(currentChat && currentChat.type==='private' && currentChat.id===cid)) return;
+  const body = document.getElementById('chatBody');
+  typingEl = document.createElement('div');
+  typingEl.className='msg other';
+  typingEl.innerHTML = `${avatarHTML(S.chars[cid],'sm')}<div class="bubble"><span class="typing"><i></i><i></i><i></i></span></div>`;
+  body.appendChild(typingEl); body.scrollTop = body.scrollHeight;
+}
+function hideTyping(){ if(typingEl){ typingEl.remove(); typingEl=null; } }
+function clamp(v){ return Math.max(0,Math.min(100,v)); }
+
+/* =========================================================
+   群聊 AI（多人连续发言）
+========================================================= */
+async function aiGroupReply(gid, extra){
+  const g = S.groups.find(x=>x.id===gid); if(!g) return;
+  // 随机挑 2-3 个成员发言
+  const speakers = shuffle([...g.members]).slice(0, 2+Math.floor(Math.random()*2));
+  for(const cid of speakers){
+    const c = S.chars[cid];
+    const history = g.msgs.slice(-20).map(m=>{
+      if(m.from==='me') return {role:'user', content:'小夜：'+(m.type==='redpacket'?`[红包 ¥${m.amount}]`:m.text)};
+      if(m.from==='sys') return {role:'user', content:'（'+m.text+'）'};
+      return {role:'assistant', content: `${S.chars[m.from]?.name||'?'}：${m.type==='redpacket'?`[红包 ¥${m.amount}]`:m.text}`};
+    });
+    if(extra) history.push({role:'user', content:'（'+extra+'）'});
+    if(!history.length) history.push({role:'user', content:'（群聊刚开始）'});
+    try{
+      const sys = buildSystemPrompt(c,'group') + `\n\n注意：当前是多人群聊，其他成员：${g.members.filter(x=>x!==cid).map(x=>S.chars[x].name).join('、')}。你只发一句简短发言。`;
+      const raw = await callDeepSeek(sys, history);
+      const p = parseMarkers(raw);
+      c.favor = clamp(c.favor+p.favor);
+      if(c.favor>=50) c.dark = clamp(c.dark+p.dark);
+      if(p.mood) c.mood = p.mood;
+      const msg = {id:uid(), from:cid, text:p.text, time:nowTime(), ts:Date.now(), type:'text'};
+      g.msgs.push(msg);
+      save();
+      if(currentChat && currentChat.type==='group' && currentChat.id===gid) renderChat();
+      await new Promise(r=>setTimeout(r, 600+Math.random()*900));
+    }catch(e){
+      if(e.message==='NO_KEY'){ toast('⚠️','未设置 API Key','去「我」里设置'); return; }
+    }
+  }
+  renderChatList();
+}
+
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+/* =========================================================
+   朋友圈 AI
+========================================================= */
+async function aiMomentReactions(mid){
+  const m = S.moments.find(x=>x.id===mid); if(!m) return;
+  // 随机 2-4 个角色点赞/评论
+  const chars = shuffle(Object.values(S.chars)).slice(0, 2+Math.floor(Math.random()*3));
+  for(const c of chars){
+    if(Math.random()<0.5){ if(!m.likes.includes(c.id)) m.likes.push(c.id); }
+    if(Math.random()<0.4){
+      try{
+        const sys = `你在扮演《Dr.STONE》的${c.name}。${c.persona}\n世界观：${S.world}\n小夜发了朋友圈：${m.text}。\n请以${c.name}口吻发一条简短评论（不超过15字），符合人设。直接输出评论内容，不要加引号。`;
+        const raw = await callDeepSeek(sys, [{role:'user',content:'评论这条朋友圈'}]);
+        m.comments.push({from:c.id, text:raw.trim().slice(0,40), ts:Date.now()});
+      }catch(e){ /* 忽略 */ }
+    }
+  }
+  save(); if(document.getElementById('s-moments').classList.contains('active')) renderMoments();
+}
+
+async function aiMomentReply(mid){
+  const m = S.moments.find(x=>x.id===mid); if(!m) return;
+  // 找作者，如果是 AI 让作者回你
+  if(m.authorId==='me') return;
+  const c = S.chars[m.authorId]; if(!c) return;
+  try{
+    const sys = buildSystemPrompt(c,'moment')+`\n\n你在朋友圈回复小夜的评论。`;
+    const raw = await callDeepSeek(sys, [{role:'user', content:'回复小夜的朋友圈评论'}]);
+    const p = parseMarkers(raw);
+    m.comments.push({from:c.id, text:p.text.slice(0,50), ts:Date.now()});
+    c.favor = clamp(c.favor+p.favor);
+    save(); renderMoments();
+  }catch(e){}
+}
+
+/* 角色主动发朋友圈（可手动触发 + 定时） */
+async function aiCharacterPostMoment(){
+  const c = Object.values(S.chars)[Math.floor(Math.random()*9)];
+  try{
+    const sys = buildSystemPrompt(c,'moment')+`\n\n请以${c.name}身份发一条朋友圈，符合人设（科研/训练/航海/日常风景等），不超过30字。直接输出内容。`;
+    const raw = await callDeepSeek(sys, [{role:'user',content:'发一条朋友圈'}]);
+    const text = raw.trim().slice(0,60);
+    if(!text) return;
+    S.moments.push({id:uid(), authorId:c.id, text, imgs:[], likes:[], comments:[], ts:Date.now()});
+    S.memories.push({type:'moment', authorId:c.id, text, ts:Date.now()});
+    save();
+    if(document.getElementById('s-moments').classList.contains('active')) renderMoments();
+    document.getElementById('dot2').style.display='block';
+    toast(c.emoji, c.name, '发布了新动态：'+text.slice(0,20)+'…', ()=>{ switchTab('moments'); document.getElementById('dot2').style.display='none'; });
+  }catch(e){}
+}
+
+/* =========================================================
+   初始化
+========================================================= */
+function init(){
+  document.documentElement.setAttribute('data-theme', S.settings.theme);
+  renderChatList(); renderContacts(); renderMoments(); renderMe();
+  // 首次使用提示
+  if(!S.settings.apiKey){
+    setTimeout(()=>toast('👋','欢迎来到石纪元','先去「我 → DeepSeek API Key」粘贴你的 Key', ()=>{ switchTab('me'); }), 800);
+  }
+  // 定时角色活动（每 3-5 分钟有机会触发一次朋友圈）
+  setInterval(()=>{
+    if(Math.random()<0.25) aiCharacterPostMoment();
+  }, 4*60*1000);
+  save();
+}
+init();
+</script>
+</body>
+</html>
